@@ -1,5 +1,6 @@
 const Header = ({ course }) => <h1>{course.name}</h1>
 
+
 const Part = ({ part }) => (
   <p>
     {part.name} {part.exercises}
