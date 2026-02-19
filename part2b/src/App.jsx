@@ -52,8 +52,6 @@ const App = () => {
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
 
-
-
   const addPerson = (event) => {
     event.preventDefault()
 
@@ -89,13 +87,9 @@ const App = () => {
     setFilter(event.target.value)
   }
 
-
-
   const personsToShow = persons.filter(person =>
     person.name.toLowerCase().includes(filter.toLowerCase())
   )
-
-
 
   return (
     <div>
