@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react'
 import personService from './services/persons'
 
+const Notification = ({ message, type }) => {
+  if (message === null) {
+    return null
+  }
 
+  return (
+    <div className={`notification ${type}`}>
+      {message}
+    </div>
+  )
+}
 
 const Filter = ({ filter, handleFilterChange }) => (
   <div>
@@ -32,15 +42,22 @@ const Persons = ({ persons, deletePerson }) => (
   </div>
 )
 
-
-
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [infoMessage, setInfoMessage] = useState(null)
+  const [messageType, setMessageType] = useState('success')
 
-  // Pobieranie danych z serwera przy starcie
+  const notify = (message, type = 'success') => {
+    setInfoMessage(message)
+    setMessageType(type)
+    setTimeout(() => {
+      setInfoMessage(null)
+    }, 5000)
+  }
+
   useEffect(() => {
     personService.getAll().then(initialPersons => {
       setPersons(initialPersons)
@@ -49,8 +66,6 @@ const App = () => {
 
   const addPerson = (event) => {
     event.preventDefault()
-    
-    // Sprawdza czy jest już osoba o takim imieniu
     const existingPerson = persons.find(p => p.name.toLowerCase() === newName.toLowerCase())
 
     if (existingPerson) {
@@ -61,17 +76,16 @@ const App = () => {
       if (confirmUpdate) {
         const changedPerson = { ...existingPerson, number: newNumber }
         
-        // AKTUALIZACJA: Zmienia dane na serwerze i podmienia obiekt w tablicy stanu
         personService
           .update(existingPerson.id, changedPerson)
           .then(returnedPerson => {
             setPersons(persons.map(p => p.id !== existingPerson.id ? p : returnedPerson))
+            notify(`Updated ${returnedPerson.name}'s number`)
             setNewName('')
             setNewNumber('')
           })
           .catch(error => {
-            // OBSŁUGA BŁĘDU: Gdy osoba została usunięta w innym oknie
-            alert(`Information of '${existingPerson.name}' has already been removed from server`)
+            notify(`Information of '${existingPerson.name}' has already been removed from server`, 'error')
             setPersons(persons.filter(p => p.id !== existingPerson.id))
           })
       }
@@ -80,26 +94,29 @@ const App = () => {
 
     const personObject = { name: newName, number: newNumber }
 
-    // DODAWANIE: Wysyła nową osobę do bazy i dodaje ją do stanu
     personService.create(personObject).then(returnedPerson => {
       setPersons(persons.concat(returnedPerson))
+      notify(`Added ${returnedPerson.name}`)
       setNewName('')
       setNewNumber('')
     })
   }
 
-  // USUWANIE: Usuwa z serwera i odfiltrowuje id ze stanu
   const deletePerson = (id, name) => {
     if (window.confirm(`Delete ${name}?`)) {
       personService
         .remove(id)
         .then(() => {
           setPersons(persons.filter(p => p.id !== id))
+          notify(`Deleted ${name}`)
+        })
+        .catch(error => {
+          notify(`The person '${name}' was already removed from server`, 'error')
+          setPersons(persons.filter(p => p.id !== id))
         })
     }
   }
 
-  // FILTROWANIE: Tworzy listę osób do pokazania na podstawie wpisanej frazy
   const personsToShow = persons.filter(person =>
     person.name.toLowerCase().includes(filter.toLowerCase())
   )
@@ -107,6 +124,9 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      
+      <Notification message={infoMessage} type={messageType} />
+      
       <Filter filter={filter} handleFilterChange={(e) => setFilter(e.target.value)} />
       
       <h3>Add a new</h3>
