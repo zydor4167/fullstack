@@ -3,13 +3,44 @@ import personService from './services/persons'
 
 
 
+const Filter = ({ filter, handleFilterChange }) => (
+  <div>
+    filter shown with <input value={filter} onChange={handleFilterChange} />
+  </div>
+)
+
+const PersonForm = ({ addPerson, newName, handleNameChange, newNumber, handleNumberChange }) => (
+  <form onSubmit={addPerson}>
+    <div>name: <input value={newName} onChange={handleNameChange} /></div>
+    <div>number: <input value={newNumber} onChange={handleNumberChange} /></div>
+    <button type="submit">add</button>
+  </form>
+)
+
+const Person = ({ person, deletePerson }) => (
+  <p>
+    {person.name} {person.number} 
+    <button onClick={() => deletePerson(person.id, person.name)}>delete</button>
+  </p>
+)
+
+const Persons = ({ persons, deletePerson }) => (
+  <div>
+    {persons.map(person =>
+      <Person key={person.id} person={person} deletePerson={deletePerson} />
+    )}
+  </div>
+)
+
+
+
 const App = () => {
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
 
- 
+  // Pobieranie danych z serwera przy starcie
   useEffect(() => {
     personService.getAll().then(initialPersons => {
       setPersons(initialPersons)
@@ -19,7 +50,7 @@ const App = () => {
   const addPerson = (event) => {
     event.preventDefault()
     
-    //sprawdza czy jest już osoba o takim imieniu
+    // Sprawdza czy jest już osoba o takim imieniu
     const existingPerson = persons.find(p => p.name.toLowerCase() === newName.toLowerCase())
 
     if (existingPerson) {
@@ -30,7 +61,7 @@ const App = () => {
       if (confirmUpdate) {
         const changedPerson = { ...existingPerson, number: newNumber }
         
-      //
+        // AKTUALIZACJA: Zmienia dane na serwerze i podmienia obiekt w tablicy stanu
         personService
           .update(existingPerson.id, changedPerson)
           .then(returnedPerson => {
@@ -39,7 +70,7 @@ const App = () => {
             setNewNumber('')
           })
           .catch(error => {
-          
+            // OBSŁUGA BŁĘDU: Gdy osoba została usunięta w innym oknie
             alert(`Information of '${existingPerson.name}' has already been removed from server`)
             setPersons(persons.filter(p => p.id !== existingPerson.id))
           })
@@ -49,7 +80,7 @@ const App = () => {
 
     const personObject = { name: newName, number: newNumber }
 
-    //dodawanie wrzuca dane do bazy danych i aktualizuje stan z odpowiedzią z serwera
+    // DODAWANIE: Wysyła nową osobę do bazy i dodaje ją do stanu
     personService.create(personObject).then(returnedPerson => {
       setPersons(persons.concat(returnedPerson))
       setNewName('')
@@ -57,7 +88,7 @@ const App = () => {
     })
   }
 
-  //usuwanie usuwa z bazy danych i aktualizuje stan usuwając osobę o danym id
+  // USUWANIE: Usuwa z serwera i odfiltrowuje id ze stanu
   const deletePerson = (id, name) => {
     if (window.confirm(`Delete ${name}?`)) {
       personService
@@ -68,7 +99,7 @@ const App = () => {
     }
   }
 
-  //filtry tworzą nową tablicę z osobami, których imiona zawierają tekst z pola 
+  // FILTROWANIE: Tworzy listę osób do pokazania na podstawie wpisanej frazy
   const personsToShow = persons.filter(person =>
     person.name.toLowerCase().includes(filter.toLowerCase())
   )
